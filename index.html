@@ -11,6 +11,36 @@
 	*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 	html,body{width:100%;height:100%;font-family:"Noto Sans JP",sans-serif;background:#bfe3dd;overflow-x:hidden}
 
+	/* ==== Loader ==== */
+	#loader{
+		position:fixed; inset:0; z-index:9999;
+		display:flex; align-items:center; justify-content:center;
+		background:#010a06;
+		color:#00ff9c;
+		font-family:"Share Tech Mono",monospace;
+		overflow:hidden; 
+		transition:opacity .7s ease, visibility .7s;
+	}
+	#loader.vanish{
+		animation:vanish .8s cubic-bezier(.25,.6,.3,1) forwards;
+		pointer-events:none;
+	}
+	@keyframes vanish{
+		0%   {opacity:1;filter:blur(0);}
+		40%  {opacity:1;filter:blur(2px);}
+		100% {opacity:0;filter:blur(8px);}
+	}
+
+	/* タイピング */
+	.loader-inner{font-size:clamp(1.4rem,4vw,2.4rem);letter-spacing:.03em}
+	.loader-prompt{white-space:pre}
+	.cursor{
+		display:inline-block;width:.6ch;margin-left:.15ch;
+		color:#00ffdc;
+		animation:blink .5s steps(1) infinite;
+	}
+	@keyframes blink{50%{opacity:0}}
+
 	/* ==== 3D 背景 ==== */
 	#container{position:fixed;inset:0;z-index:0}
 
@@ -105,6 +135,13 @@
 </head>
 
 <body>
+<div id="loader">
+	<div class="loader-inner">
+		<span class="loader-prompt">&gt; Welcome My Page!</span>
+		<span class="cursor">_</span>
+	</div>
+</div>
+
 <!-- ===== 左メニュー ===== -->
 <nav id="nav">
   <button data-view="home" class="active">Home</button>
@@ -170,23 +207,61 @@ const controls = new OrbitControls(camera,renderer.domElement);
 controls.target.set(0,0.5,0);
 controls.enablePan = false;
 controls.enableDamping = true;
+controls.enabled = false;
 controls.update();
 
-/* ---------- モデルロード ---------- */
-const dracoLoader = new DRACOLoader().setDecoderPath('/jsm/libs/gltf/');
-const loader      = new GLTFLoader().setDRACOLoader(dracoLoader);
+/* ---------- ローディングマネージャ ---------- */
+const loaderEl = document.getElementById('loader');
+const typingEl = loaderEl.querySelector('.loader-prompt');
+let promptTxt  = typingEl.textContent;
+typingEl.textContent = '';               // 文字を空にしてタイプ開始
 
-loader.load('/assets/LittlestTokyo.glb', gltf=>{
+/* タイピング風アニメ */
+let i=0; const typeId = setInterval(()=>{
+  typingEl.textContent = promptTxt.slice(0, ++i);
+  if(i === promptTxt.length) clearInterval(typeId);
+}, 60);
+
+const loadingManager = new THREE.LoadingManager(
+  () => {
+		setTimeout(()=>{
+			loaderEl.classList.add('vanish');
+			showInfo(VIEWS.home);
+      controls.enabled = true;
+      renderer.setAnimationLoop(animate);
+		}, 1200);
+  }
+);
+
+/* ---------- モデル読み込み ---------- */
+const dracoLoader = new DRACOLoader(loadingManager)
+                      .setDecoderPath('/jsm/libs/gltf/');
+const gltfLoader  = new GLTFLoader(loadingManager)
+                      .setDRACOLoader(dracoLoader);
+
+gltfLoader.load('assets/LittlestTokyo.glb', gltf=>{
   const model = gltf.scene;
-  model.position.set(1,1,0);
   model.scale.set(0.01,0.01,0.01);
   scene.add(model);
-
   mixer = new THREE.AnimationMixer(model);
   mixer.clipAction(gltf.animations[0]).play();
+});
 
-  renderer.setAnimationLoop(animate);
-}, undefined, err=>console.error(err));
+/* ---------- モデルロード ---------- */
+// const dracoLoader = new DRACOLoader().setDecoderPath('/jsm/libs/gltf/');
+// const loader      = new GLTFLoader().setDRACOLoader(dracoLoader);
+
+// loader.load('/assets/LittlestTokyo.glb', gltf=>{
+//   const model = gltf.scene;
+//   model.position.set(1,1,0);
+//   model.scale.set(0.01,0.01,0.01);
+//   scene.add(model);
+
+//   mixer = new THREE.AnimationMixer(model);
+//   mixer.clipAction(gltf.animations[0]).play();
+
+//   renderer.setAnimationLoop(animate);
+// }, undefined, err=>console.error(err));
 
 /* ---------- ビュー定義 ---------- */
 const VIEWS = {
@@ -246,20 +321,8 @@ function flyOrbit({pos,target},duration=2){
   requestAnimationFrame(step);
 }
 
-const buttons = document.querySelectorAll('#nav button');
-buttons.forEach(btn=>{
-	btn.addEventListener('click',()=>{
-		/* active 切り替え */
-		buttons.forEach(b=>b.classList.remove('active'));
-		btn.classList.add('active');
-
-		const view = VIEWS[btn.dataset.view];
-		flyOrbit(view);
-		showInfo(view);
-	});
-});
-
 /* ---------- インフォパネル更新 ---------- */
+let currentView = 'home'; 
 const panel = document.getElementById('info');
 function showInfo({title,text}){
 	panel.classList.remove('show');
@@ -273,7 +336,16 @@ function showInfo({title,text}){
 /* ---------- メニューイベント ---------- */
 document.querySelectorAll('#nav button').forEach(btn=>{
   btn.addEventListener('click',()=>{
-    const view = VIEWS[btn.dataset.view];
+		const viewKey = btn.dataset.view;
+		if(viewKey === currentView) return;
+
+		document.querySelector('#nav button.active')?.classList.remove('active');
+		btn.classList.add('active');
+
+		currentView = viewKey;
+		controls.enabled = (viewKey === 'home');
+
+		const view = VIEWS[viewKey];
     flyOrbit(view);
     showInfo(view);
   });
