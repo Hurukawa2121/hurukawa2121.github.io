@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>My Blog</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /* ----- 基本 ----- */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; font-family: "Noto Sans JP", sans-serif; }
+    body { background: #bfe3dd; overflow-x: hidden; }
+
+    /* ----- 3D 背景コンテナ ----- */
+    #container {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+
+    /* ----- ブログレイヤー ----- */
+    #blog {
+      position: relative;
+      z-index: 1;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 4rem 1rem 6rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    header h1 {
+      font-size: clamp(2rem, 4vw + .5rem, 3rem);
+      margin: 0 0 .5rem;
+    }
+    nav a {
+      margin: 0 .5rem;
+      text-decoration: none;
+      color: #2983ff;
+      font-weight: 700;
+    }
+
+    /* ----- 記事カード ----- */
+    article {
+      background: rgba(255,255,255,.85);
+      backdrop-filter: blur(6px);
+      border-radius: 12px;
+      padding: 2rem 1.5rem;
+      margin-bottom: 2.5rem;
+      box-shadow: 0 6px 16px rgba(0,0,0,.08);
+    }
+    article h2 {
+      margin: 0 0 .75rem;
+      font-size: 1.5rem;
+    }
+    article time {
+      color: #666;
+      font-size: .9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Three.js 背景 -->
+  <div id="container"></div>
+
+  <!-- ブログ本文 -->
+  <div id="blog">
+    <header>
+      <h1>My 3D Blog</h1>
+      <nav>
+        <a href="#home">Home</a>
+        <a href="#about">About</a>
+        <a href="#archive">Archive</a>
+      </nav>
+    </header>
+
+    <!-- サンプル記事 -->
+    <article>
+      <h2>初めての投稿</h2>
+      <time datetime="2025-05-06">2025-05-06</time>
+      <p>
+        これはテンプレートから生成した最初のブログ記事です。  
+        バックで動く 3D シーンと重ならないように、記事は半透明カードに載せています。
+      </p>
+    </article>
+
+    <!-- TODO: ここに記事を追加していく -->
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "/build/three.module.js",
+        "three/addons/": "/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+    let mixer;
+    const clock      = new THREE.Clock();
+    const container  = document.getElementById('container');
+
+    /* ----- レンダラー ----- */
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    container.appendChild(renderer.domElement);
+
+    /* ----- シーン & 環境 ----- */
+    const scene = new THREE.Scene();
+    scene.background   = new THREE.Color(0xbfe3dd);
+    const pmremGen     = new THREE.PMREMGenerator(renderer);
+    scene.environment  = pmremGen.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    /* ----- カメラ & コントロール ----- */
+    const camera   = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 100);
+    camera.position.set(5, 2, 8);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 0.5, 0);
+    controls.enablePan     = false;
+    controls.enableDamping = true;
+    controls.update();
+
+    /* ----- モデル読み込み ----- */
+    const dracoLoader = new DRACOLoader().setDecoderPath('/jsm/libs/gltf/');
+    const loader      = new GLTFLoader().setDRACOLoader(dracoLoader);
+
+    loader.load('/assets/LittlestTokyo.glb', gltf => {
+      const model = gltf.scene;
+      model.position.set(1, 1, 0);
+      model.scale.set(0.01, 0.01, 0.01);
+      scene.add(model);
+
+      mixer = new THREE.AnimationMixer(model);
+      mixer.clipAction(gltf.animations[0]).play();
+
+      renderer.setAnimationLoop(animate);
+    }, undefined, err => console.error(err));
+
+    /* ----- リサイズ ----- */
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    /* ----- アニメーションループ ----- */
+    function animate() {
+      const delta = clock.getDelta();
+      mixer?.update(delta);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+  </script>
+</body>
+</html>
