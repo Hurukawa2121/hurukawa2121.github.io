@@ -1,168 +1,298 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <title>My Blog</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    /* ----- 基本 ----- */
-    *, *::before, *::after { box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; margin: 0; font-family: "Noto Sans JP", sans-serif; }
-    body { background: #bfe3dd; overflow-x: hidden; }
+<meta charset="utf-8">
+<title>Hurukawa2121 Blog</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
 
-    /* ----- 3D 背景コンテナ ----- */
-    #container {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-    }
+<style>
+	/* ==== リセット & 共通 ==== */
+	*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+	html,body{width:100%;height:100%;font-family:"Noto Sans JP",sans-serif;background:#bfe3dd;overflow-x:hidden}
 
-    /* ----- ブログレイヤー ----- */
-    #blog {
-      position: relative;
-      z-index: 1;
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 4rem 1rem 6rem;
-    }
+	/* ==== 3D 背景 ==== */
+	#container{position:fixed;inset:0;z-index:0}
 
-    header {
-      text-align: center;
-      margin-bottom: 3rem;
-    }
-    header h1 {
-      font-size: clamp(2rem, 4vw + .5rem, 3rem);
-      margin: 0 0 .5rem;
-    }
-    nav a {
-      margin: 0 .5rem;
-      text-decoration: none;
-      color: #2983ff;
-      font-weight: 700;
-    }
+	/* ==== 左メニュー ==== */
+	#nav{
+		position:fixed;top:50%;left:32px;transform:translateY(-50%);
+		display:flex;flex-direction:column;gap:1.25rem;z-index:3;
+	}
+	#nav button{
+		font-family:"Share Tech Mono","Courier New",monospace;
+		font-size:1.25rem;letter-spacing:.05em;
+		background:rgba(0,0,0,.75);
+		color:#ffdf5d;border:2px solid #ffdf5d;
+		padding:.8rem 2.6rem;border-radius:10px;cursor:pointer;
+		transition:background .25s ease,border-color .25s ease,transform .25s ease;
+	}
+	#nav button:hover{background:rgba(255,223,93,.15);border-color:#fff37d;color:#fff37d;transform:translateX(4px)}
+	#nav button.active{
+    background:#ffdf5d;
+    color:#000;
+    border-color:#ffdf5d;
+    pointer-events:none;
+  }
+	/* ===== 左メニュー ===== */
+	#nav{
+		position:fixed;
+		top:50%; left:48px;              /* ← 座標をさらに右へ */
+		transform:translateY(-50%);
+		display:flex; flex-direction:column; gap:1.5rem;
+		z-index:3;
+	}
+	#nav button{
+		font-family:"Share Tech Mono",monospace;
+		font-size:1.6rem;                /* ← 大きく */
+		padding:1rem 3rem;               /* ← 余裕を追加 */
+		background:rgba(0,0,0,.75);
+		color:#ffdf5d; border:2px solid #ffdf5d;
+		border-radius:12px; cursor:pointer;
+		transition:background .25s,border-color .25s,transform .25s;
+	}
+	#nav button:hover{
+		background:rgba(255,223,93,.15); border-color:#fff37d; color:#fff37d;
+		transform:translateX(6px);
+	}
+	#nav button.active{
+		background:#ffdf5d; color:#000; border-color:#ffdf5d; pointer-events:none;
+	}
 
-    /* ----- 記事カード ----- */
-    article {
-      background: rgba(255,255,255,.85);
-      backdrop-filter: blur(6px);
-      border-radius: 12px;
-      padding: 2rem 1.5rem;
-      margin-bottom: 2.5rem;
-      box-shadow: 0 6px 16px rgba(0,0,0,.08);
-    }
-    article h2 {
-      margin: 0 0 .75rem;
-      font-size: 1.5rem;
-    }
-    article time {
-      color: #666;
-      font-size: .9rem;
-    }
-  </style>
+	/* ==== 右インフォパネル ==== */
+	#info{
+		position:fixed;top:50%;right:32px;transform:translateY(-50%) translateX(40px);
+		width:280px;max-width:42%;
+		background:rgba(0,0,0,.7);color:#fff;
+		padding:1.6rem 1.4rem;border-radius:14px;z-index:3;
+		opacity:0;pointer-events:none;
+		transition:opacity .5s ease,transform .5s ease;
+	}
+	#info.show{opacity:1;transform:translateY(-50%) translateX(0)}
+	#info h3{font-family:"Share Tech Mono";font-size:1.3rem;margin:0 0 .6rem;color:#ffdf5d}
+	#info p{font-size:.95rem;line-height:1.55}
+
+	/* ==== ブログ本文 ==== */
+	#blog{position:relative;z-index:1;max-width:960px;margin:0 auto;
+				padding:4rem 1rem 6rem}
+	header{text-align:center;margin-bottom:3rem}
+	header h1{font-size:clamp(2rem,4vw+0.3rem,3rem);
+						font-family:"Share Tech Mono",monospace;color:#333}
+
+	article{background:rgba(255,255,255,.85);backdrop-filter:blur(6px);
+					border-radius:12px;padding:2rem 1.5rem;margin-bottom:2.5rem;
+					box-shadow:0 6px 18px rgba(0,0,0,.08)}
+	article h2{margin:0 0 .75rem;font-size:1.55rem;font-weight:700}
+	article time{color:#666;font-size:.9rem}
+
+  /* 右インフォパネル */
+  #info{
+    position:fixed;
+    top:50%;
+    right:48px;                      /* 右側の余白を広めに */
+    transform:translateY(-50%) translateX(40px);
+    width:340px; max-width:45%;      /* 幅を拡大 */
+    background:rgba(0,0,0,.7); color:#fff;
+    padding:2rem 1.6rem;             /* 内側余白アップ */
+    border-radius:16px;
+    z-index:3; opacity:0; pointer-events:none;
+    transition:opacity .5s ease,transform .5s ease;
+  }
+  #info.show{opacity:1;transform:translateY(-50%) translateX(0)}
+  #info h3{font-family:"Share Tech Mono";font-size:1.5rem;margin:0 0 .8rem;color:#ffdf5d}
+  #info p {font-size:1.05rem;line-height:1.6}
+</style>
 </head>
+
 <body>
+<!-- ===== 左メニュー ===== -->
+<nav id="nav">
+  <button data-view="home" class="active">Home</button>
+  <button data-view="about">About</button>
+  <button data-view="archive">Archive</button>
+</nav>
 
-  <!-- Three.js 背景 -->
-  <div id="container"></div>
+<!-- ==== 右インフォパネル ==== -->
+<aside id="info">
+  <h3>Home</h3>
+  <p>Welcome to my 3D blog! Use the neon menu to explore the tiny town.</p>
+</aside>
 
-  <!-- ブログ本文 -->
-  <div id="blog">
-    <header>
-      <h1>My 3D Blog</h1>
-      <nav>
-        <a href="#home">Home</a>
-        <a href="#about">About</a>
-        <a href="#archive">Archive</a>
-      </nav>
-    </header>
+<!-- ===== Three.js 背景 ===== -->
+<div id="container"></div>
 
-    <!-- サンプル記事 -->
-    <article>
-      <h2>初めての投稿</h2>
-      <time datetime="2025-05-06">2025-05-06</time>
-      <p>
-        これはテンプレートから生成した最初のブログ記事です。  
-        バックで動く 3D シーンと重ならないように、記事は半透明カードに載せています。
-      </p>
-    </article>
+<!-- ===== ブログ本文 ===== -->
+<div id="blog">
+  <header><h1>Hurukawa2121 Blog</h1></header>
+  <article>
+    <h2>News</h2>
+    <time datetime="2025-05-06">2025-05-06</time>
+    <p>雛形作成</p>
+  </article>
+</div>
 
-    <!-- TODO: ここに記事を追加していく -->
-  </div>
+<!-- ===== Three.js スクリプト ===== -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "/build/three.module.js",
+    "three/addons/": "/jsm/"
+  }
+}
+</script>
 
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "/build/three.module.js",
-        "three/addons/": "/jsm/"
-      }
-    }
-  </script>
+<script type="module">
+import * as THREE               from 'three';
+import { OrbitControls }        from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment }      from 'three/addons/environments/RoomEnvironment.js';
+import { GLTFLoader }           from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader }          from 'three/addons/loaders/DRACOLoader.js';
 
-  <script type="module">
-    import * as THREE from 'three';
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-    import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+/* ---------- 初期化 ---------- */
+let mixer;
+const clock     = new THREE.Clock();
+const container = document.getElementById('container');
 
-    let mixer;
-    const clock      = new THREE.Clock();
-    const container  = document.getElementById('container');
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(window.innerWidth,window.innerHeight);
+container.appendChild(renderer.domElement);
 
-    /* ----- レンダラー ----- */
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    container.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background  = new THREE.Color(0xbfe3dd);
+scene.environment = new THREE.PMREMGenerator(renderer)
+                    .fromScene(new RoomEnvironment(),0.04).texture;
 
-    /* ----- シーン & 環境 ----- */
-    const scene = new THREE.Scene();
-    scene.background   = new THREE.Color(0xbfe3dd);
-    const pmremGen     = new THREE.PMREMGenerator(renderer);
-    scene.environment  = pmremGen.fromScene(new RoomEnvironment(), 0.04).texture;
+const camera = new THREE.PerspectiveCamera(40,window.innerWidth/window.innerHeight,1,100);
+camera.position.set(5,2,8);          // 初期位置 (Home)
 
-    /* ----- カメラ & コントロール ----- */
-    const camera   = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 100);
-    camera.position.set(5, 2, 8);
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 0.5, 0);
-    controls.enablePan     = false;
-    controls.enableDamping = true;
+const controls = new OrbitControls(camera,renderer.domElement);
+controls.target.set(0,0.5,0);
+controls.enablePan = false;
+controls.enableDamping = true;
+controls.update();
+
+/* ---------- モデルロード ---------- */
+const dracoLoader = new DRACOLoader().setDecoderPath('/jsm/libs/gltf/');
+const loader      = new GLTFLoader().setDRACOLoader(dracoLoader);
+
+loader.load('/assets/LittlestTokyo.glb', gltf=>{
+  const model = gltf.scene;
+  model.position.set(1,1,0);
+  model.scale.set(0.01,0.01,0.01);
+  scene.add(model);
+
+  mixer = new THREE.AnimationMixer(model);
+  mixer.clipAction(gltf.animations[0]).play();
+
+  renderer.setAnimationLoop(animate);
+}, undefined, err=>console.error(err));
+
+/* ---------- ビュー定義 ---------- */
+const VIEWS = {
+  home   : { pos:new THREE.Vector3( 5, 2,  8), target:new THREE.Vector3(0,0.5, 0),
+             title:'Home',    text:'Welcome to my 3D blog! Use the neon menu to explore the tiny town.' },
+  about  : { pos:new THREE.Vector3(-4, 2,  4), target:new THREE.Vector3(-1,1,0),
+             title:'About',   text:'This blog blends WebGL & writing. Scroll down for tech notes and life updates.' },
+  archive: { pos:new THREE.Vector3( 3, 3, -5), target:new THREE.Vector3( 1,1,-2),
+             title:'Archive', text:'Looking for old posts? You\'ll find the full list and tags right here.' }
+};
+
+/* ---------- 円弧でカメラ移動 ---------- */
+function flyOrbit({pos,target},duration=2){
+  const startPos    = camera.position.clone();
+  const startTarget = controls.target.clone();
+
+  // --- 2D 極座標（XZ 平面）で角度・半径を補間 ---
+  const toPolar = v => {
+    const r = Math.hypot(v.x,v.z);
+    let   a = Math.atan2(v.z,v.x);
+    if(a<0) a += Math.PI*2;
+    return {r,a,y:v.y};
+  };
+  const s = toPolar(startPos), e = toPolar(pos);
+
+  // 最短ではなく常に「左回り」で回転したい場合などは
+  // ここで e.a を調整する
+  if(Math.abs(e.a-s.a) > Math.PI){
+    if(e.a > s.a) e.a -= Math.PI*2; else e.a += Math.PI*2;
+  }
+
+  let startTime = null;
+  function easeInOutQuad(t){return t<.5 ? 2*t*t : -1+(4-2*t)*t;}
+
+  function step(tms){
+    if(!startTime) startTime = tms;
+    const t = Math.min((tms-startTime)/(duration*1000),1);
+    const k = easeInOutQuad(t);
+
+    // 角度・半径・高さを補間
+    const ang = s.a + (e.a-s.a)*k;
+    const rad = s.r + (e.r-s.r)*k;
+    const y   = s.y + (e.y-s.y)*k;
+
+    camera.position.set(
+      Math.cos(ang)*rad,
+      y,
+      Math.sin(ang)*rad
+    );
+
+    // ターゲットは線形補間で OK
+    controls.target.lerpVectors(startTarget,target,k);
     controls.update();
 
-    /* ----- モデル読み込み ----- */
-    const dracoLoader = new DRACOLoader().setDecoderPath('/jsm/libs/gltf/');
-    const loader      = new GLTFLoader().setDRACOLoader(dracoLoader);
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
 
-    loader.load('/assets/LittlestTokyo.glb', gltf => {
-      const model = gltf.scene;
-      model.position.set(1, 1, 0);
-      model.scale.set(0.01, 0.01, 0.01);
-      scene.add(model);
+const buttons = document.querySelectorAll('#nav button');
+buttons.forEach(btn=>{
+	btn.addEventListener('click',()=>{
+		/* active 切り替え */
+		buttons.forEach(b=>b.classList.remove('active'));
+		btn.classList.add('active');
 
-      mixer = new THREE.AnimationMixer(model);
-      mixer.clipAction(gltf.animations[0]).play();
+		const view = VIEWS[btn.dataset.view];
+		flyOrbit(view);
+		showInfo(view);
+	});
+});
 
-      renderer.setAnimationLoop(animate);
-    }, undefined, err => console.error(err));
+/* ---------- インフォパネル更新 ---------- */
+const panel = document.getElementById('info');
+function showInfo({title,text}){
+	panel.classList.remove('show');
+	setTimeout(()=>{
+		panel.querySelector('h3').textContent = title;
+		panel.querySelector('p').textContent  = text;
+		panel.classList.add('show');
+	},300);
+}
 
-    /* ----- リサイズ ----- */
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+/* ---------- メニューイベント ---------- */
+document.querySelectorAll('#nav button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const view = VIEWS[btn.dataset.view];
+    flyOrbit(view);
+    showInfo(view);
+  });
+});
 
-    /* ----- アニメーションループ ----- */
-    function animate() {
-      const delta = clock.getDelta();
-      mixer?.update(delta);
-      controls.update();
-      renderer.render(scene, camera);
-    }
-  </script>
+/* ---------- リサイズ ---------- */
+window.addEventListener('resize',()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+
+/* ---------- ループ ---------- */
+function animate(){
+  const delta = clock.getDelta();
+  mixer?.update(delta);
+  controls.update();
+  renderer.render(scene,camera);
+}
+</script>
 </body>
 </html>
